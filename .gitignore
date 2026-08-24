@@ -1,0 +1,9 @@
+.venv/
+work/*.json
+work/*.txt
+out/*.mp4
+out/*.ass
+input.mp4
+*.pyc
+__pycache__/
+.DS_Store
