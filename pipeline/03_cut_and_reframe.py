@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import WORK_DIR, OUT_DIR, MUSIC_DIR, eprint, load_json, run_ffmpeg, slugify  # noqa: E402
+from utils import WORK_DIR, OUT_DIR, MUSIC_DIR, eprint, load_json, run_ffmpeg, slugify, ffprobe_duration  # noqa: E402
 from config import (  # noqa: E402
     OUTPUT_WIDTH, OUTPUT_HEIGHT, OUTPUT_FPS, VIDEO_CRF, AUDIO_BITRATE, USE_FACE_DETECTION,
     TRIM_TO_SILENCE, TRIM_SEARCH_WINDOW, TRIM_SILENCE_THRESHOLD_DB, TRIM_SILENCE_MIN_DURATION,
@@ -28,7 +28,7 @@ from config import (  # noqa: E402
     MIN_CLIP_SECONDS, USE_BACKGROUND_MUSIC, BACKGROUND_MUSIC_VOLUME,
 )
 
-MUSIC_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"}
+MUSIC_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".mp4", ".mov", ".m4v", ".webm", ".mkv"}
 
 
 def list_music_tracks():
@@ -40,6 +40,7 @@ TARGET_RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT  # 9:16 = 0.5625
 FACE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
 FACE_SAMPLE_INTERVAL = 0.5  # seconds between face-position samples
 FACE_SMOOTHING_ALPHA = 0.25  # lower = smoother/slower-following crop
+MAX_CROP_KEYFRAMES = 40  # cap on the crop-x expression's nested if() chain, regardless of clip length
 
 
 def refine_boundary_to_silence(video_path: Path, nominal_time: float, direction: str) -> float:
@@ -174,6 +175,29 @@ def build_dynamic_x_expr(samples, crop_w: int, src_width: int):
     for x in xs[1:]:
         smoothed.append(smoothed[-1] + FACE_SMOOTHING_ALPHA * (x - smoothed[-1]))
 
+    # collapse runs where the crop position barely changes (very common on long
+    # clips with a mostly-static subject) -- keeps the expression small without
+    # losing any visible motion
+    dedup_times, dedup_smoothed = [times[0]], [smoothed[0]]
+    for t, x in zip(times[1:], smoothed[1:]):
+        if abs(x - dedup_smoothed[-1]) > 0.5:
+            dedup_times.append(t)
+            dedup_smoothed.append(x)
+        else:
+            dedup_smoothed[-1] = x
+    if dedup_times[-1] != times[-1]:
+        dedup_times.append(times[-1])
+        dedup_smoothed.append(smoothed[-1])
+    times, smoothed = dedup_times, dedup_smoothed
+
+    # hard cap regardless of clip length -- ffmpeg's expression parser can't
+    # handle arbitrarily deep nested if() chains, so long clips need this even
+    # after dedup
+    if len(times) > MAX_CROP_KEYFRAMES:
+        idx = sorted(set(round(i * (len(times) - 1) / (MAX_CROP_KEYFRAMES - 1)) for i in range(MAX_CROP_KEYFRAMES)))
+        times = [times[i] for i in idx]
+        smoothed = [smoothed[i] for i in idx]
+
     def build(idx):
         if idx == len(times) - 1:
             return f"{smoothed[idx]:.2f}"
@@ -275,7 +299,15 @@ def main():
 
         cmd = ["-ss", str(start), "-to", str(end), "-i", str(input_path)]
         if music_path:
-            cmd += ["-stream_loop", "-1", "-i", str(music_path)]
+            clip_duration = end - start
+            song_duration = ffprobe_duration(music_path)
+            max_offset = max(0.0, song_duration - clip_duration)
+            music_offset = random.uniform(0.0, max_offset) if max_offset > 0 else 0.0
+            eprint(f"      music excerpt: {music_path.name} @ {music_offset:.1f}s-{music_offset + clip_duration:.1f}s")
+            # a single trimmed excerpt, not the whole track and not looped --
+            # picking a random start point also keeps repeat plays of the same
+            # track from always opening on the same intro bar
+            cmd += ["-ss", f"{music_offset:.2f}", "-t", str(clip_duration), "-i", str(music_path)]
             filter_complex = (
                 f"[0:v]{video_vf}[vout];"
                 f"[0:a]{voice_af},aformat=channel_layouts=stereo[voice];"

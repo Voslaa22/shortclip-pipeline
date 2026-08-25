@@ -42,7 +42,7 @@ LOUDNESS_RANGE = 11
 # clip's length, and mixed in under the original narration. Leave the folder
 # empty to skip music entirely.
 USE_BACKGROUND_MUSIC = True
-BACKGROUND_MUSIC_VOLUME = 0.30   # relative to the (loudness-normalized) narration at "full" volume
+BACKGROUND_MUSIC_VOLUME = 0.15   # relative to the (loudness-normalized) narration at "full" volume
 
 # ---- Smart reframe (9:16 crop) ----
 # If OpenCV is installed, the pipeline tries to detect a face and keep it centered
