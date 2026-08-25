@@ -22,12 +22,66 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import WORK_DIR, OUT_DIR, eprint, load_json, run_ffmpeg, slugify  # noqa: E402
 from config import (  # noqa: E402
     OUTPUT_WIDTH, OUTPUT_HEIGHT, OUTPUT_FPS, VIDEO_CRF, AUDIO_BITRATE, USE_FACE_DETECTION,
+    TRIM_TO_SILENCE, TRIM_SEARCH_WINDOW, TRIM_SILENCE_THRESHOLD_DB, TRIM_SILENCE_MIN_DURATION,
+    NORMALIZE_LOUDNESS, LOUDNESS_TARGET_LUFS, LOUDNESS_TRUE_PEAK, LOUDNESS_RANGE,
+    MIN_CLIP_SECONDS,
 )
 
 TARGET_RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT  # 9:16 = 0.5625
 FACE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
 FACE_SAMPLE_INTERVAL = 0.5  # seconds between face-position samples
 FACE_SMOOTHING_ALPHA = 0.25  # lower = smoother/slower-following crop
+
+
+def refine_boundary_to_silence(video_path: Path, nominal_time: float, direction: str) -> float:
+    """Nudge a clip start/end onto a nearby real silence gap so the clip doesn't
+    open/close on dead air. Searches +/-TRIM_SEARCH_WINDOW seconds around
+    nominal_time; falls back to nominal_time if no clean gap is found there."""
+    window = TRIM_SEARCH_WINDOW
+    lo = max(0.0, nominal_time - window)
+    cmd = [
+        "ffmpeg", "-hide_banner", "-i", str(video_path),
+        "-ss", str(lo), "-t", str(window * 2),
+        "-af", f"silencedetect=noise={TRIM_SILENCE_THRESHOLD_DB}dB:d={TRIM_SILENCE_MIN_DURATION}",
+        "-f", "null", "-",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    silences = []
+    cur_start = None
+    for line in result.stderr.splitlines():
+        line = line.strip()
+        if "silence_start:" in line:
+            try:
+                cur_start = float(line.split("silence_start:")[1].strip())
+            except ValueError:
+                cur_start = None
+        elif "silence_end:" in line and cur_start is not None:
+            try:
+                end_val = float(line.split("silence_end:")[1].split("|")[0].strip())
+                silences.append((cur_start, end_val))
+            except ValueError:
+                pass
+            cur_start = None
+
+    if not silences:
+        return nominal_time
+
+    target_rel = nominal_time - lo
+    lead_in = 0.05
+
+    if direction == "start":
+        candidates = [s for s in silences if s[1] <= target_rel + 0.3]
+        if not candidates:
+            return nominal_time
+        _, s_end = max(candidates, key=lambda s: s[1])
+        return lo + max(0.0, s_end - lead_in)
+    else:
+        candidates = [s for s in silences if s[0] >= target_rel - 0.3]
+        if not candidates:
+            return nominal_time
+        s_start, _ = min(candidates, key=lambda s: s[0])
+        return lo + s_start + lead_in
 
 
 def sample_face_centers(video_path: Path, start: float, end: float):
@@ -181,6 +235,18 @@ def main():
         out_name = f"clip_{i:02d}_{slug}.mp4"
         out_path = OUT_DIR / out_name
 
+        if TRIM_TO_SILENCE:
+            refined_start = refine_boundary_to_silence(input_path, start, "start")
+            refined_end = refine_boundary_to_silence(input_path, end, "end")
+            if refined_end - refined_start >= MIN_CLIP_SECONDS * 0.5:
+                if abs(refined_start - start) > 0.01 or abs(refined_end - end) > 0.01:
+                    eprint(f"      trim: {start:.2f}-{end:.2f} -> {refined_start:.2f}-{refined_end:.2f}")
+                start, end = refined_start, refined_end
+
+        # persist the (possibly refined) times so 04_add_captions.py slices the
+        # transcript against the exact window that actually got cut
+        clip["start"], clip["end"] = start, end
+
         samples = sample_face_centers(input_path, start, end)
         x_expr = build_dynamic_x_expr(samples, crop_w, src_w) if samples else None
         vf = build_crop_filter(src_w, src_h, x_expr, None)
@@ -189,14 +255,21 @@ def main():
         mode = f"tracked ({tracked_points}/{len(samples)} samples)" if x_expr else ("center" if not samples else "center (no face found)")
         eprint(f"[{i:02d}] {title}  ({start:.1f}s - {end:.1f}s)  face_lock={mode}")
 
-        run_ffmpeg([
+        af = f"loudnorm=I={LOUDNESS_TARGET_LUFS}:TP={LOUDNESS_TRUE_PEAK}:LRA={LOUDNESS_RANGE}" if NORMALIZE_LOUDNESS else None
+
+        cmd = [
             "-ss", str(start), "-to", str(end), "-i", str(input_path),
             "-vf", f"{vf},fps={OUTPUT_FPS}",
+        ]
+        if af:
+            cmd += ["-af", af]
+        cmd += [
             "-c:v", "libx264", "-preset", "medium", "-crf", str(VIDEO_CRF),
             "-c:a", "aac", "-b:a", AUDIO_BITRATE,
             "-movflags", "+faststart",
             str(out_path),
-        ], description=f"cutting + reframing clip {i}")
+        ]
+        run_ffmpeg(cmd, description=f"cutting + reframing clip {i}")
 
         # remember where each raw (uncaptioned) clip landed and its time offset,
         # so the captions step can slice the right words out of the transcript

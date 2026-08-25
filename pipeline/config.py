@@ -22,6 +22,20 @@ MIN_CLIP_SECONDS = 20
 MAX_CLIP_SECONDS = 90
 TARGET_CLIP_COUNT = (10, 15)  # (min, max) clips to produce
 
+# ---- Trim & audio polish ----
+# Nudges each clip's start/end to the nearest real silence boundary (instead of
+# the raw timestamp) so clips don't open/close on a half-second of dead air.
+TRIM_TO_SILENCE = True
+TRIM_SEARCH_WINDOW = 1.5      # seconds to search around start/end for a silence gap
+TRIM_SILENCE_THRESHOLD_DB = -35
+TRIM_SILENCE_MIN_DURATION = 0.08
+# Loudness-normalizes each clip's audio to a consistent target (EBU R128), so
+# volume doesn't jump between clips -- -14 LUFS is the common social-video target.
+NORMALIZE_LOUDNESS = True
+LOUDNESS_TARGET_LUFS = -14
+LOUDNESS_TRUE_PEAK = -1.5
+LOUDNESS_RANGE = 11
+
 # ---- Smart reframe (9:16 crop) ----
 # If OpenCV is installed, the pipeline tries to detect a face and keep it centered
 # in the vertical crop. If not installed, or no face is found, it falls back to a
