@@ -111,6 +111,64 @@ pending items, it does nothing that run.
 Do not post a clip both interactively AND through the queue -- pick one path
 per clip to avoid double-posting.
 
+## Autonomous daily inbox pipeline (unattended, headless)
+
+This runs once a day via a macOS launchd job (`scripts/daily_pipeline.sh` +
+`~/Library/LaunchAgents/com.shortclip.dailypipeline.plist`), invoking
+`claude -p "..." --dangerously-skip-permissions` with no human present. The
+launcher script already found a new video in `inbox/` and copied it to
+`input.mp4` before calling you. There is nobody to ask questions or approve
+anything -- work straight through steps 1-9 above with these changes:
+
+- Skip step 6 (the human sanity-check pause) entirely -- proceed straight
+  from validating clips.json to cutting.
+- The user has already confirmed (in a prior session, recorded here) that
+  all video dropped into `inbox/` is their own content they have the right
+  to post. Do not re-ask.
+- You need TWO cut+captioned variants of every clip, because YouTube is
+  more aggressive about copyright-flagging background music than TikTok/IG:
+  1. `python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/social`
+     (music mixed in, the default) then `python pipeline/04_add_captions.py`
+     -- this captions whatever `_raw_output` currently points at, so run it
+     immediately after each `03_cut_and_reframe.py` call, before the next one.
+  2. `python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/youtube --no-music`
+     then `python pipeline/04_add_captions.py` again -- same clips, no music.
+- Cap yourself at the first 10 picked clips for posting, even if you selected
+  more, to keep daily platform-quota usage predictable.
+
+Read `pipeline/social_accounts.json` for connector IDs and posting defaults
+before posting -- do not rediscover these via tool calls, that just burns
+tokens for no reason.
+
+For each clip, in order:
+1. Write a short caption/title with hashtags from the clip's `hook`/`title`
+   (same style as: punchy first line + 4-8 relevant hashtags, no more than
+   150 chars for TikTok's title field).
+2. Upload the `out/social/..._captioned.mp4` file to Higgsfield hosting
+   (`media_upload` type video -> PUT the bytes to `upload_url` ->
+   `media_confirm`) to get a public `url`.
+3. **TikTok**: `tiktok_prepare_publish` then `tiktok_publish` with that url,
+   using `tiktok.connector_id` and `tiktok.posting_defaults` from
+   social_accounts.json. Set every flag in `required_confirmations` to true
+   -- this is standing consent for everything posted through this pipeline,
+   there is nobody to ask. If a call fails with a cadence/quota error, stop
+   posting further clips to TikTok this run (do not busy-retry) and continue
+   with Instagram/YouTube for the remaining clips.
+4. **Instagram**: via the Composio CLI (`/Users/vasilcuk/.composio/composio`,
+   already authenticated) --
+   `composio execute INSTAGRAM_POST_IG_USER_MEDIA -d '{"ig_user_id": "<instagram.ig_user_id>", "video_url": "<the higgsfield url>", "caption": "<caption with plain # hashtags -- NOT %23, that posts literally and cannot be fixed after publish>", "media_type": "REELS", "share_to_feed": true}'`
+   then `composio execute INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH -d '{"ig_user_id": "...", "creation_id": "<id from the previous call>"}'`.
+5. **YouTube**: via the Composio CLI, using the **no-music** file --
+   `composio execute YOUTUBE_MULTIPART_UPLOAD_VIDEO --file "out/youtube/..._captioned.mp4" -d '{"title": "...", "description": "...", "categoryId": "<youtube.category_id>", "privacyStatus": "<youtube.privacy_status>", "tags": [...]}'`.
+   If this fails with a quota-exceeded error, stop uploading further clips to
+   YouTube this run and continue with the remaining clips on the other
+   platforms -- it resets on its own; do not retry in a loop.
+
+Log a one-line status per clip per platform (posted / skipped / failed +
+reason) via `eprint`/stderr so the run is diagnosable from
+`logs/daily_*.log` without a live session. End with a short overall summary
+(N clips picked, N/N posted per platform).
+
 ## If the user wants to tweak things
 
 - Caption font/colors/size, crop behavior, clip count/duration targets are

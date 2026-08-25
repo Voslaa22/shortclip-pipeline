@@ -252,17 +252,20 @@ def probe_resolution(path: Path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Path to the source video")
+    parser.add_argument("--out-dir", default=None, help="Override output directory (default: out/)")
+    parser.add_argument("--no-music", action="store_true", help="Skip background music for this run")
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
+    out_dir = Path(args.out_dir).resolve() if args.out_dir else OUT_DIR
     clips = load_json(WORK_DIR / "clips.json")
     src_w, src_h = probe_resolution(input_path)
     crop_w = int(round(src_h * TARGET_RATIO)) if (src_w / src_h) > TARGET_RATIO else src_w
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    music_tracks = list_music_tracks()
-    if USE_BACKGROUND_MUSIC and not music_tracks:
+    music_tracks = [] if args.no_music else list_music_tracks()
+    if USE_BACKGROUND_MUSIC and not args.no_music and not music_tracks:
         eprint(f"[music] no tracks found in {MUSIC_DIR}/ -- skipping background music")
 
     for i, clip in enumerate(sorted(clips, key=lambda c: c["start"]), start=1):
@@ -270,7 +273,7 @@ def main():
         title = clip.get("title", f"clip-{i}")
         slug = slugify(title)
         out_name = f"clip_{i:02d}_{slug}.mp4"
-        out_path = OUT_DIR / out_name
+        out_path = out_dir / out_name
 
         if TRIM_TO_SILENCE:
             refined_start = refine_boundary_to_silence(input_path, start, "start")
@@ -333,7 +336,7 @@ def main():
 
     from utils import save_json
     save_json(WORK_DIR / "clips.json", clips)
-    eprint(f"\nDone. {len(clips)} reframed clips are in {OUT_DIR}/")
+    eprint(f"\nDone. {len(clips)} reframed clips are in {out_dir}/")
     eprint("Next: python pipeline/04_add_captions.py")
 
 

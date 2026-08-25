@@ -48,7 +48,7 @@ def main():
         ass_path = raw_path.with_suffix(".ass")
         ass_path.write_text(ass_content, encoding="utf-8")
 
-        final_path = OUT_DIR / f"{raw_path.stem}_captioned.mp4"
+        final_path = raw_path.parent / f"{raw_path.stem}_captioned.mp4"
 
         # ffmpeg needs a forward-slash, escaped-colon path for the ass filter
         ass_filter_path = str(ass_path).replace("\\", "/").replace(":", "\\:")

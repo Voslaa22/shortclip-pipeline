@@ -1,0 +1,30 @@
+{
+  "tiktok": {
+    "connector_id": "31e66d9d-ed75-4b97-b322-f1cef5250009",
+    "posting_defaults": {
+      "mode": "DIRECT_POST",
+      "media_type": "VIDEO",
+      "privacy_level": "PUBLIC_TO_EVERYONE",
+      "is_aigc": false,
+      "allow_comment": true,
+      "allow_duet": true,
+      "allow_stitch": true,
+      "commercial_content_disclosure": { "enabled": false, "your_brand": false, "branded_content": false }
+    }
+  },
+  "instagram": {
+    "composio_toolkit": "instagram",
+    "ig_user_id": "28186706570970294",
+    "handle": "clips_user01",
+    "media_type": "REELS",
+    "share_to_feed": true
+  },
+  "youtube": {
+    "composio_toolkit": "youtube",
+    "channel_id": "UCp1N_Ye2KHZhoGy8r-DY5-w",
+    "channel_title": "Clips_User01",
+    "category_id": "22",
+    "privacy_status": "public"
+  },
+  "composio_cli_path": "/Users/vasilcuk/.composio/composio"
+}
