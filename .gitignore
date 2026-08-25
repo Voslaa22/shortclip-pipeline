@@ -6,6 +6,10 @@ out/*.ass
 input.mp4
 music/*
 !music/.gitkeep
+inbox/
+out/social/
+out/youtube/
+logs/
 *.pyc
 __pycache__/
 .DS_Store
