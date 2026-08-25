@@ -12,6 +12,7 @@ Usage:
     python pipeline/03_cut_and_reframe.py --input input.mp4
 """
 import argparse
+import random
 import subprocess
 import sys
 import tempfile
@@ -19,13 +20,21 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import WORK_DIR, OUT_DIR, eprint, load_json, run_ffmpeg, slugify  # noqa: E402
+from utils import WORK_DIR, OUT_DIR, MUSIC_DIR, eprint, load_json, run_ffmpeg, slugify  # noqa: E402
 from config import (  # noqa: E402
     OUTPUT_WIDTH, OUTPUT_HEIGHT, OUTPUT_FPS, VIDEO_CRF, AUDIO_BITRATE, USE_FACE_DETECTION,
     TRIM_TO_SILENCE, TRIM_SEARCH_WINDOW, TRIM_SILENCE_THRESHOLD_DB, TRIM_SILENCE_MIN_DURATION,
     NORMALIZE_LOUDNESS, LOUDNESS_TARGET_LUFS, LOUDNESS_TRUE_PEAK, LOUDNESS_RANGE,
-    MIN_CLIP_SECONDS,
+    MIN_CLIP_SECONDS, USE_BACKGROUND_MUSIC, BACKGROUND_MUSIC_VOLUME,
 )
+
+MUSIC_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"}
+
+
+def list_music_tracks():
+    if not USE_BACKGROUND_MUSIC or not MUSIC_DIR.exists():
+        return []
+    return sorted(p for p in MUSIC_DIR.iterdir() if p.suffix.lower() in MUSIC_EXTENSIONS)
 
 TARGET_RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT  # 9:16 = 0.5625
 FACE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
@@ -228,6 +237,10 @@ def main():
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    music_tracks = list_music_tracks()
+    if USE_BACKGROUND_MUSIC and not music_tracks:
+        eprint(f"[music] no tracks found in {MUSIC_DIR}/ -- skipping background music")
+
     for i, clip in enumerate(sorted(clips, key=lambda c: c["start"]), start=1):
         start, end = clip["start"], clip["end"]
         title = clip.get("title", f"clip-{i}")
@@ -251,21 +264,32 @@ def main():
         x_expr = build_dynamic_x_expr(samples, crop_w, src_w) if samples else None
         vf = build_crop_filter(src_w, src_h, x_expr, None)
 
+        music_path = random.choice(music_tracks) if music_tracks else None
         tracked_points = sum(1 for _, f in samples if f is not None) if samples else 0
         mode = f"tracked ({tracked_points}/{len(samples)} samples)" if x_expr else ("center" if not samples else "center (no face found)")
-        eprint(f"[{i:02d}] {title}  ({start:.1f}s - {end:.1f}s)  face_lock={mode}")
+        music_note = f"  music={music_path.name}" if music_path else ""
+        eprint(f"[{i:02d}] {title}  ({start:.1f}s - {end:.1f}s)  face_lock={mode}{music_note}")
 
-        af = f"loudnorm=I={LOUDNESS_TARGET_LUFS}:TP={LOUDNESS_TRUE_PEAK}:LRA={LOUDNESS_RANGE}" if NORMALIZE_LOUDNESS else None
+        voice_af = f"loudnorm=I={LOUDNESS_TARGET_LUFS}:TP={LOUDNESS_TRUE_PEAK}:LRA={LOUDNESS_RANGE}" if NORMALIZE_LOUDNESS else "anull"
+        video_vf = f"{vf},fps={OUTPUT_FPS}"
 
-        cmd = [
-            "-ss", str(start), "-to", str(end), "-i", str(input_path),
-            "-vf", f"{vf},fps={OUTPUT_FPS}",
-        ]
-        if af:
-            cmd += ["-af", af]
+        cmd = ["-ss", str(start), "-to", str(end), "-i", str(input_path)]
+        if music_path:
+            cmd += ["-stream_loop", "-1", "-i", str(music_path)]
+            filter_complex = (
+                f"[0:v]{video_vf}[vout];"
+                f"[0:a]{voice_af},aformat=channel_layouts=stereo[voice];"
+                f"[1:a]volume={BACKGROUND_MUSIC_VOLUME},aformat=channel_layouts=stereo[music];"
+                f"[voice][music]amix=inputs=2:duration=first:dropout_transition=0[aout]"
+            )
+        else:
+            filter_complex = f"[0:v]{video_vf}[vout];[0:a]{voice_af}[aout]"
+
         cmd += [
+            "-filter_complex", filter_complex,
+            "-map", "[vout]", "-map", "[aout]",
             "-c:v", "libx264", "-preset", "medium", "-crf", str(VIDEO_CRF),
-            "-c:a", "aac", "-b:a", AUDIO_BITRATE,
+            "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "44100",
             "-movflags", "+faststart",
             str(out_path),
         ]

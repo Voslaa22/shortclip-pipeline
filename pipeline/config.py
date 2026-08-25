@@ -36,6 +36,14 @@ LOUDNESS_TARGET_LUFS = -14
 LOUDNESS_TRUE_PEAK = -1.5
 LOUDNESS_RANGE = 11
 
+# ---- Background music ----
+# Drop audio files (mp3/wav/m4a/...) into the top-level music/ folder. If any
+# are present, each clip gets one picked at random, looped/trimmed to the
+# clip's length, and mixed in under the original narration. Leave the folder
+# empty to skip music entirely.
+USE_BACKGROUND_MUSIC = True
+BACKGROUND_MUSIC_VOLUME = 0.30   # relative to the (loudness-normalized) narration at "full" volume
+
 # ---- Smart reframe (9:16 crop) ----
 # If OpenCV is installed, the pipeline tries to detect a face and keep it centered
 # in the vertical crop. If not installed, or no face is found, it falls back to a

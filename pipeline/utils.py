@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORK_DIR = ROOT / "work"
 OUT_DIR = ROOT / "out"
+MUSIC_DIR = ROOT / "music"
 
 # Prefer a libass-enabled ffmpeg/ffprobe (needed to burn in .ass captions) if
 # one is installed via `brew install ffmpeg-full`, since the plain `ffmpeg`
