@@ -22,45 +22,57 @@ if [ -n "$EXISTING" ]; then
   exit 0
 fi
 
-CANDIDATE_ID=$("$YTDLP" --flat-playlist --print "%(id)s\t%(duration)s\t%(title)s" "$CHANNEL_URL" 2>/dev/null | python3 -c '
-import json, sys
-seen = json.load(open("'"$LOG_JSON"'"))
-seen_ids = {v["id"] for v in seen}
+# One JSON object per video line -> robust against any title content and against
+# yt-dlp emitting a literal \t instead of a tab in --print templates.
+CANDIDATE=$("$YTDLP" --flat-playlist --print "%(.{id,duration,title})j" "$CHANNEL_URL" 2>/dev/null | \
+  LOG_JSON="$LOG_JSON" MAX_DURATION="$MAX_DURATION" python3 -c '
+import json, os, sys
+seen = {v["id"] for v in json.load(open(os.environ["LOG_JSON"]))}
+cap = int(os.environ["MAX_DURATION"])
 for line in sys.stdin:
-    parts = line.rstrip("\n").split("\t", 2)
-    if len(parts) != 3:
-        continue
-    vid, dur, title = parts
-    if vid in seen_ids:
+    line = line.strip()
+    if not line:
         continue
     try:
-        dur = int(dur)
+        o = json.loads(line)
     except ValueError:
         continue
-    if dur > '"$MAX_DURATION"':
+    if o.get("id") in seen:
         continue
-    print(f"{vid}\t{title}")
+    dur = o.get("duration")
+    if not isinstance(dur, (int, float)) or dur > cap:
+        continue
+    print(json.dumps({"id": o["id"], "title": o.get("title") or o["id"]}))
     break
 ')
 
-if [ -z "$CANDIDATE_ID" ]; then
+if [ -z "$CANDIDATE" ]; then
   echo "$(date -u) -- no new eligible video found on channel (nothing new, or all remaining are over 40 min)"
   exit 0
 fi
 
-VID=$(echo "$CANDIDATE_ID" | cut -f1)
-TITLE=$(echo "$CANDIDATE_ID" | cut -f2-)
-SAFE_TITLE=$(echo "$TITLE" | tr -c 'A-Za-z0-9 ._-' '_')
+VID=$(printf '%s' "$CANDIDATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+TITLE=$(printf '%s' "$CANDIDATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["title"])')
+SAFE_TITLE=$(printf '%s' "$TITLE" | tr -c 'A-Za-z0-9 ._-' '_' | cut -c1-80)
 
 echo "$(date -u) -- downloading $VID ($TITLE)"
-"$YTDLP" -f "best[ext=mp4]/best" -o "$INBOX/${VID}__${SAFE_TITLE}.%(ext)s" "https://www.youtube.com/watch?v=${VID}"
+# Cap at 1080p and take best video+audio streams, muxing to mp4 (YouTube no
+# longer offers a progressive single-file format for many channels).
+if ! "$YTDLP" \
+    -f "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b" \
+    --merge-output-format mp4 \
+    -o "$INBOX/${VID}__${SAFE_TITLE}.%(ext)s" "https://www.youtube.com/watch?v=${VID}"; then
+  echo "$(date -u) -- download FAILED for $VID -- not logging it, will retry next run"
+  rm -f "$INBOX/${VID}__"*.part "$INBOX/${VID}__"*.ytdl 2>/dev/null
+  exit 1
+fi
 
-python3 -c '
-import json
-path = "'"$LOG_JSON"'"
+VID="$VID" TITLE="$TITLE" LOG_JSON="$LOG_JSON" python3 -c '
+import json, os
+path = os.environ["LOG_JSON"]
 data = json.load(open(path))
-data.append({"id": "'"$VID"'", "title": "'"$(echo "$TITLE" | sed "s/\"/\\\\\"/g")"'", "duration": None, "status": "queued"})
+data.append({"id": os.environ["VID"], "title": os.environ["TITLE"], "duration": None, "status": "queued"})
 json.dump(data, open(path, "w"), indent=2)
 '
 
-echo "$(date -u) -- queued $VID for tonight'"'"'s pipeline run"
+echo "$(date -u) -- queued $VID for the pipeline run"
