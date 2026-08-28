@@ -20,8 +20,9 @@ LOG_FILE="$LOG_DIR/daily_${TIMESTAMP}.log"
 # Skip if a run already finished successfully today -- the interactive loop or an
 # earlier launchd fire may have handled it. Prevents posting a second video.
 TODAY=$(date -u +%Y%m%d)
-if grep -lq "pipeline finished OK" "$LOG_DIR"/daily_${TODAY}T*.log 2>/dev/null; then
-  echo "$(date -u) -- a run already finished OK today; nothing to do" >> "$LOG_FILE"
+if grep -lq "pipeline finished OK" "$LOG_DIR"/daily_${TODAY}T*.log 2>/dev/null \
+   || [ -f "$LOG_DIR/loop_handling_${TODAY}" ]; then
+  echo "$(date -u) -- a run already finished OK today, or the interactive loop is handling it; nothing to do" >> "$LOG_FILE"
   exit 0
 fi
 
