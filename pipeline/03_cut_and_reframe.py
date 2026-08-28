@@ -50,11 +50,13 @@ def refine_boundary_to_silence(video_path: Path, nominal_time: float, direction:
     window = TRIM_SEARCH_WINDOW
     lo = max(0.0, nominal_time - window)
     cmd = [
-        "ffmpeg", "-hide_banner", "-i", str(video_path),
-        "-ss", str(lo), "-t", str(window * 2),
+        "ffmpeg", "-hide_banner",
+        "-ss", str(lo), "-i", str(video_path), "-t", str(window * 2),
         "-af", f"silencedetect=noise={TRIM_SILENCE_THRESHOLD_DB}dB:d={TRIM_SILENCE_MIN_DURATION}",
         "-f", "null", "-",
     ]
+    # -ss before -i = fast (keyframe) seek, so this is quick even deep into a
+    # long source. Offsets in the silencedetect output are then relative to `lo`.
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=FFPROBE_TIMEOUT)
 
     silences = []
