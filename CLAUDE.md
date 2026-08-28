@@ -179,8 +179,14 @@ these changes:
      immediately after each `03_cut_and_reframe.py` call, before the next one.
   2. `.venv/bin/python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/youtube --no-music`
      then `.venv/bin/python pipeline/04_add_captions.py` again -- same clips, no music.
-- Cap yourself at the first 10 picked clips for posting, even if you selected
-  more, to keep daily platform-quota usage predictable.
+- Post up to the first 13 picked clips (even if you selected more) -- this is
+  the daily batch. Post them all in one run, directly (do NOT queue them).
+- **Hard deadline: all posting for this pipeline must be DONE by 19:00 UTC.**
+  Prep (download, transcribe, cut, caption) should finish well before that so
+  posting is quick. If at any point you realise you cannot finish posting the
+  batch before 19:00 UTC, STOP before posting, leave the source video in
+  `inbox/` untouched, and let the next day's run handle it. Never post past
+  the deadline.
 
 Read `pipeline/social_accounts.json` for connector IDs and posting defaults
 before posting -- do not rediscover these via tool calls, that just burns

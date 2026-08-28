@@ -17,6 +17,14 @@ cd "$PROJECT_DIR"
 TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
 LOG_FILE="$LOG_DIR/daily_${TIMESTAMP}.log"
 
+# Skip if a run already finished successfully today -- the interactive loop or an
+# earlier launchd fire may have handled it. Prevents posting a second video.
+TODAY=$(date -u +%Y%m%d)
+if grep -lq "pipeline finished OK" "$LOG_DIR"/daily_${TODAY}T*.log 2>/dev/null; then
+  echo "$(date -u) -- a run already finished OK today; nothing to do" >> "$LOG_FILE"
+  exit 0
+fi
+
 "$PROJECT_DIR/scripts/fetch_next_video.sh" >> "$LOG_FILE" 2>&1
 
 VIDEO=$(find "$INBOX" -maxdepth 1 -type f \( -iname "*.mp4" -o -iname "*.mov" -o -iname "*.m4v" -o -iname "*.mkv" \) | head -n 1)
