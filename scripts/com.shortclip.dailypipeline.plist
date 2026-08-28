@@ -7,7 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/vasilcuk/Downloads/shortclip-pipeline/scripts/daily_pipeline.sh</string>
+        <string>/Users/vasilcuk/shortclip-pipeline/scripts/daily_pipeline.sh</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -17,9 +17,9 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/vasilcuk/Downloads/shortclip-pipeline/logs/launchd.out.log</string>
+    <string>/Users/vasilcuk/shortclip-pipeline/logs/launchd.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/vasilcuk/Downloads/shortclip-pipeline/logs/launchd.err.log</string>
+    <string>/Users/vasilcuk/shortclip-pipeline/logs/launchd.err.log</string>
     <key>RunAtLoad</key>
     <false/>
 </dict>

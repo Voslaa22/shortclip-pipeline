@@ -5,7 +5,7 @@
 # TikTok/Instagram, without music for YouTube), and post to all three.
 set -uo pipefail
 
-PROJECT_DIR="/Users/vasilcuk/Downloads/shortclip-pipeline"
+PROJECT_DIR="/Users/vasilcuk/shortclip-pipeline"
 INBOX="$PROJECT_DIR/inbox"
 PROCESSED="$INBOX/processed"
 LOG_DIR="$PROJECT_DIR/logs"

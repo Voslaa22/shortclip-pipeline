@@ -5,7 +5,7 @@
 # daily_pipeline.sh can mark it "posted" in the log by its id once it's done.
 set -uo pipefail
 
-PROJECT_DIR="/Users/vasilcuk/Downloads/shortclip-pipeline"
+PROJECT_DIR="/Users/vasilcuk/shortclip-pipeline"
 INBOX="$PROJECT_DIR/inbox"
 LOG_JSON="$PROJECT_DIR/work/downloaded_videos.json"
 CHANNEL_URL="https://www.youtube.com/@OutdoorBoys/videos"
