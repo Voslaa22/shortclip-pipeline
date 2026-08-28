@@ -1,5 +1,6 @@
 """Small shared helpers used by the pipeline scripts."""
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -18,6 +19,12 @@ _FULL_FFMPEG = Path("/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg")
 _FULL_FFPROBE = Path("/opt/homebrew/opt/ffmpeg-full/bin/ffprobe")
 FFMPEG_BIN = str(_FULL_FFMPEG) if _FULL_FFMPEG.exists() else (shutil.which("ffmpeg") or "ffmpeg")
 FFPROBE_BIN = str(_FULL_FFPROBE) if _FULL_FFPROBE.exists() else (shutil.which("ffprobe") or "ffprobe")
+
+# Wall-clock ceilings so a wedged ffmpeg/ffprobe can't hold its pipes and a CPU
+# core forever (which starves any other pipeline instance running alongside).
+# Override with env vars for unusually long sources.
+FFMPEG_TIMEOUT = int(os.environ.get("SHORTCLIP_FFMPEG_TIMEOUT", "1800"))    # 30 min per encode
+FFPROBE_TIMEOUT = int(os.environ.get("SHORTCLIP_FFPROBE_TIMEOUT", "60"))
 
 
 def eprint(*args, **kwargs):
@@ -59,11 +66,21 @@ def humanize_title(slug: str) -> str:
     return " ".join(out)
 
 
-def run_ffmpeg(args, description=""):
-    """Run an ffmpeg command, raising a clear error on failure."""
+def run_ffmpeg(args, description="", timeout=None):
+    """Run an ffmpeg command, raising a clear error on failure or hang."""
     cmd = [FFMPEG_BIN, "-y", "-hide_banner", "-loglevel", "error"] + args
     eprint(f"[ffmpeg] {description or ' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            timeout=timeout if timeout is not None else FFMPEG_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        # subprocess has already killed the child and closed its pipes here.
+        raise RuntimeError(
+            f"ffmpeg timed out after {timeout or FFMPEG_TIMEOUT}s: {description} "
+            f"(raise SHORTCLIP_FFMPEG_TIMEOUT if the source is legitimately long)"
+        )
     if result.returncode != 0:
         eprint(result.stderr)
         raise RuntimeError(f"ffmpeg failed: {description}")
@@ -75,7 +92,7 @@ def ffprobe_duration(path: Path) -> float:
         FFPROBE_BIN, "-v", "error", "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1", str(path),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=FFPROBE_TIMEOUT)
     return float(result.stdout.strip())
 
 

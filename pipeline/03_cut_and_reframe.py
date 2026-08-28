@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import WORK_DIR, OUT_DIR, MUSIC_DIR, eprint, load_json, run_ffmpeg, slugify, ffprobe_duration  # noqa: E402
+from utils import WORK_DIR, OUT_DIR, MUSIC_DIR, eprint, load_json, run_ffmpeg, slugify, ffprobe_duration, FFPROBE_TIMEOUT  # noqa: E402
 from config import (  # noqa: E402
     OUTPUT_WIDTH, OUTPUT_HEIGHT, OUTPUT_FPS, VIDEO_CRF, AUDIO_BITRATE, USE_FACE_DETECTION,
     TRIM_TO_SILENCE, TRIM_SEARCH_WINDOW, TRIM_SILENCE_THRESHOLD_DB, TRIM_SILENCE_MIN_DURATION,
@@ -55,7 +55,7 @@ def refine_boundary_to_silence(video_path: Path, nominal_time: float, direction:
         "-af", f"silencedetect=noise={TRIM_SILENCE_THRESHOLD_DB}dB:d={TRIM_SILENCE_MIN_DURATION}",
         "-f", "null", "-",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=FFPROBE_TIMEOUT)
 
     silences = []
     cur_start = None
@@ -114,7 +114,7 @@ def sample_face_centers(video_path: Path, start: float, end: float):
             "-ss", str(max(start, 0)), "-i", str(video_path), "-t", str(duration),
             "-vf", f"fps={fps}", pattern,
         ]
-        subprocess.run(cmd, capture_output=True)
+        subprocess.run(cmd, capture_output=True, timeout=FFPROBE_TIMEOUT * 5)
 
         frame_files = sorted(Path(tmp).glob("f_*.jpg"))
         if not frame_files:
@@ -281,7 +281,7 @@ def probe_resolution(path: Path):
         "ffprobe", "-v", "error", "-select_streams", "v:0",
         "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", str(path),
     ]
-    out = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+    out = subprocess.run(cmd, capture_output=True, text=True, timeout=FFPROBE_TIMEOUT).stdout.strip()
     w, h = out.split("x")
     return int(w), int(h)
 
