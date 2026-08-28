@@ -59,3 +59,12 @@ CAPTION_COLOR_DEFAULT = "&H00FFFFFF"   # white  (ASS is &HAABBGGRR)
 CAPTION_COLOR_ACTIVE = "&H0000D7FF"    # amber/gold highlight for the word being spoken
 CAPTION_OUTLINE_COLOR = "&H00000000"   # black outline
 CAPTION_MARGIN_V = 260            # distance from bottom of frame, in px (1920 tall canvas)
+
+# ---- Title banner (static, pinned to the top, fades out after a few seconds) ----
+# Matches the caption style (same font/size/colors) -- only position, and how
+# long it stays on screen, differ from the word-by-word captions.
+TITLE_FONT_SIZE = CAPTION_FONT_SIZE
+TITLE_COLOR = CAPTION_COLOR_DEFAULT
+TITLE_OUTLINE_COLOR = CAPTION_OUTLINE_COLOR
+TITLE_MARGIN_V = 140              # distance from top of frame, in px
+TITLE_DISPLAY_SECONDS = 5         # title banner fades out after this long, not the whole clip

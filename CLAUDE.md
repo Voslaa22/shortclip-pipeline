@@ -20,7 +20,7 @@ judgment, not a fixed rule.
 ## Your job when the user asks you to "pick the clips" or "run the pipeline"
 
 1. If `work/transcript.json` doesn't exist yet, run:
-   `python pipeline/01_transcribe.py input.mp4`
+   `.venv/bin/python pipeline/01_transcribe.py input.mp4`
    (Tell the user this can take several minutes for a 40-minute video and to
    grab a coffee.)
 
@@ -28,9 +28,14 @@ judgment, not a fixed rule.
    a start time, end time, and text). Read the whole thing; don't skim.
 
 3. Select 10-15 candidate clips using these criteria, roughly in priority order:
-   - **Hook**: the first 1-2 seconds of the clip must grab attention —
-     a bold claim, a question, a surprising statement, or the start of a
-     story. Avoid starting mid-sentence or on a throwaway word like "so"/"um".
+   - **Hook-first, not chronological**: don't default to "the clip is whatever
+     30-90s window contains the story." Scan the surrounding footage for the
+     single strongest moment -- the most surprising line, the biggest reaction,
+     the punchline, the reveal -- and open the clip on THAT, even if it happens
+     later in the scene than the setup that explains it. If the strongest
+     moment isn't at the natural start of the window, use the `segments`
+     multi-part schema below to open on it and cut back to context afterward,
+     rather than opening on the slower chronological lead-in.
    - **Self-contained**: the clip should make sense with zero outside
      context. No "as I mentioned earlier" or "going back to that point."
    - **One idea per clip**: a single story, argument, joke, tip, or insight
@@ -38,15 +43,21 @@ judgment, not a fixed rule.
    - **Payoff**: it should land somewhere — a punchline, a resolution, a
      clear takeaway, an emotional beat. Don't cut it off before the payoff.
    - **Duration**: `MIN_CLIP_SECONDS`-`MAX_CLIP_SECONDS` from `pipeline/config.py`
-     (default 20-90s). Favor 30-60s for most platforms.
+     (default 20-90s) is the total assembled duration across all segments if
+     using the multi-segment schema. Favor 30-60s for most platforms.
    - **Variety**: don't pick 12 clips that are all the same type of moment —
      mix stories, hot takes, practical tips, funny moments, emotional beats
      if the source material has them.
-   - **No overlaps**: clips should not share timestamp ranges.
-   - Nudge the exact start/end a second or two so the clip starts and ends
-     on clean sentence boundaries, not mid-word.
+   - **No overlaps**: clips (or any of their segments) should not share
+     timestamp ranges with each other.
+   - Nudge the exact start/end of each segment a second or two so it starts
+     and ends on clean sentence boundaries, not mid-word.
 
-4. Write your picks to `work/clips.json` as a JSON array. Each object needs:
+4. Write your picks to `work/clips.json` as a JSON array. Each object needs
+   either a plain `start`/`end` (single continuous cut, chronological), OR a
+   `segments` list (an ordered array of `{start, end}` windows from anywhere
+   in the source, concatenated in the order given -- use this whenever the
+   strongest hook isn't at the top of the natural chronological window):
    ```json
    {
      "start": 128.4,
@@ -56,9 +67,27 @@ judgment, not a fixed rule.
      "reason": "One sentence on why you picked this moment (for the user's review, not used by the scripts)"
    }
    ```
-   See `work/clips.example.json` for a worked example.
+   ```json
+   {
+     "segments": [
+       { "start": 412.1, "end": 416.8 },
+       { "start": 391.0, "end": 400.2 },
+       { "start": 416.8, "end": 438.5 }
+     ],
+     "title": "short-kebab-case-slug-used-in-the-filename",
+     "hook": "The line spoken at the start of the FIRST segment -- this is what plays first",
+     "reason": "Opens on the strongest reaction (chronologically the middle of the scene), cuts back to the setup for context, then resumes to the payoff."
+   }
+   ```
+   Only the outer edges (the very first segment's start, the very last
+   segment's end) get nudged onto a silence boundary automatically -- interior
+   cut points between segments are used exactly as given, since those are
+   deliberate hard cuts for the reorder, not natural pauses. Word-by-word
+   captions and the title banner are computed automatically across segments in
+   the order given, so caption timing doesn't need any special handling from
+   you. See `work/clips.example.json` for a worked example.
 
-5. Run `python pipeline/02_validate_clips.py` and fix anything it flags as a
+5. Run `.venv/bin/python pipeline/02_validate_clips.py` and fix anything it flags as a
    problem (warnings about duration/count are fine to leave if you have a
    good reason).
 
@@ -66,9 +95,9 @@ judgment, not a fixed rule.
    so they can sanity check before you cut anything. If they approve (or if
    they told you upfront to just run everything), continue:
 
-7. Run `python pipeline/03_cut_and_reframe.py --input input.mp4`
+7. Run `.venv/bin/python pipeline/03_cut_and_reframe.py --input input.mp4`
 
-8. Run `python pipeline/04_add_captions.py`
+8. Run `.venv/bin/python pipeline/04_add_captions.py`
 
 9. Tell the user their finished clips are in `out/*_captioned.mp4`, ready to
    upload manually to TikTok / Instagram Reels / YouTube Shorts.
@@ -115,24 +144,41 @@ per clip to avoid double-posting.
 
 This runs once a day via a macOS launchd job (`scripts/daily_pipeline.sh` +
 `~/Library/LaunchAgents/com.shortclip.dailypipeline.plist`), invoking
-`claude -p "..." --dangerously-skip-permissions` with no human present. The
-launcher script already found a new video in `inbox/` and copied it to
-`input.mp4` before calling you. There is nobody to ask questions or approve
-anything -- work straight through steps 1-9 above with these changes:
+`claude -p "..." --dangerously-skip-permissions` with no human present.
+
+Before looking for a video, the launcher script runs
+`scripts/fetch_next_video.sh`, which checks the Outdoor Boys YouTube channel
+(`https://www.youtube.com/@OutdoorBoys/videos`) via `yt-dlp` against
+`work/downloaded_videos.json` (a log of every video id already downloaded,
+keyed by id, with a `status` of `queued` or `posted`) and downloads the
+first video that (a) isn't already in that log and (b) is 2400 seconds (40
+minutes) or under, naming it `inbox/<id>__<title>.mp4` so the id survives
+into the pipeline run. If inbox/ already has an unprocessed video sitting in
+it, the fetch step does nothing that run. The user has confirmed Luke
+(Outdoor Boys) is fine with his videos being clipped and reposted this way
+-- do not re-ask about content rights for this channel. Give the original
+creator a brief on-screen/caption credit (e.g. "🎥 Footage: Outdoor Boys")
+in every post's caption/description going forward.
+
+The launcher script then finds whatever video is sitting in `inbox/` and
+copies it to `input.mp4` before calling you. There is nobody to ask
+questions or approve anything -- work straight through steps 1-9 above with
+these changes:
 
 - Skip step 6 (the human sanity-check pause) entirely -- proceed straight
   from validating clips.json to cutting.
-- The user has already confirmed (in a prior session, recorded here) that
-  all video dropped into `inbox/` is their own content they have the right
-  to post. Do not re-ask.
+- After a successful run, the launcher script deletes the source video from
+  disk (not archives it) and marks its id `"posted"` in
+  `work/downloaded_videos.json`, so it's never re-downloaded and doesn't
+  pile up on the drive.
 - You need TWO cut+captioned variants of every clip, because YouTube is
   more aggressive about copyright-flagging background music than TikTok/IG:
-  1. `python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/social`
-     (music mixed in, the default) then `python pipeline/04_add_captions.py`
+  1. `.venv/bin/python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/social`
+     (music mixed in, the default) then `.venv/bin/python pipeline/04_add_captions.py`
      -- this captions whatever `_raw_output` currently points at, so run it
      immediately after each `03_cut_and_reframe.py` call, before the next one.
-  2. `python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/youtube --no-music`
-     then `python pipeline/04_add_captions.py` again -- same clips, no music.
+  2. `.venv/bin/python pipeline/03_cut_and_reframe.py --input input.mp4 --out-dir out/youtube --no-music`
+     then `.venv/bin/python pipeline/04_add_captions.py` again -- same clips, no music.
 - Cap yourself at the first 10 picked clips for posting, even if you selected
   more, to keep daily platform-quota usage predictable.
 

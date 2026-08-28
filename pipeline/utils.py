@@ -31,6 +31,34 @@ def slugify(text: str, max_len: int = 40) -> str:
     return text[:max_len] or "clip"
 
 
+# kebab-case slugs strip apostrophes ("won't" -> "wont"), so restore common
+# contractions when turning a slug back into human-readable display text.
+_CONTRACTION_FIXES = {
+    "wont": "won't", "dont": "don't", "doesnt": "doesn't", "cant": "can't",
+    "isnt": "isn't", "wasnt": "wasn't", "arent": "aren't", "werent": "weren't",
+    "didnt": "didn't", "wouldnt": "wouldn't", "couldnt": "couldn't",
+    "shouldnt": "shouldn't", "havent": "haven't", "hasnt": "hasn't",
+    "hadnt": "hadn't", "shant": "shan't", "mustnt": "mustn't", "neednt": "needn't",
+    "im": "I'm", "youre": "you're", "theyre": "they're", "weve": "we've",
+    "theyve": "they've", "ive": "I've", "youve": "you've", "youll": "you'll",
+    "well": "we'll", "theyll": "they'll", "lets": "let's", "thats": "that's",
+    "whats": "what's", "wheres": "where's", "hows": "how's", "heres": "here's",
+}
+
+
+def humanize_title(slug: str) -> str:
+    """Turn a kebab-case clip title slug into a grammatically correct display title."""
+    words = slug.replace("-", " ").replace("_", " ").strip().split()
+    out = []
+    for w in words:
+        fixed = _CONTRACTION_FIXES.get(w.lower())
+        if fixed:
+            out.append(fixed if fixed[0] == "I" else fixed[0].upper() + fixed[1:])
+        else:
+            out.append(w.capitalize())
+    return " ".join(out)
+
+
 def run_ffmpeg(args, description=""):
     """Run an ffmpeg command, raising a clear error on failure."""
     cmd = [FFMPEG_BIN, "-y", "-hide_banner", "-loglevel", "error"] + args

@@ -239,6 +239,43 @@ def build_crop_filter(src_width: int, src_height: int, x_expr: Optional[str], st
     return f"{crop},{scale}"
 
 
+def render_segment(input_path: Path, start: float, end: float, src_w: int, src_h: int,
+                    crop_w: int, out_path: Path):
+    """Cut+reframe one continuous source window into an intermediate file
+    (video crop/scale/fps + AAC audio, no loudnorm/music yet) so multiple
+    segments can later be concatenated losslessly with `-c copy`."""
+    samples = sample_face_centers(input_path, start, end)
+    x_expr = build_dynamic_x_expr(samples, crop_w, src_w) if samples else None
+    vf = build_crop_filter(src_w, src_h, x_expr, None)
+    tracked_points = sum(1 for _, f in samples if f is not None) if samples else 0
+    mode = f"tracked ({tracked_points}/{len(samples)} samples)" if x_expr else ("center" if not samples else "center (no face found)")
+    eprint(f"      segment {start:.1f}s-{end:.1f}s  face_lock={mode}")
+
+    run_ffmpeg([
+        "-ss", str(start), "-to", str(end), "-i", str(input_path),
+        "-vf", f"{vf},fps={OUTPUT_FPS}",
+        "-c:v", "libx264", "-preset", "medium", "-crf", str(VIDEO_CRF),
+        "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "44100",
+        str(out_path),
+    ], description=f"rendering segment {start:.1f}-{end:.1f}")
+    return mode
+
+
+def concat_segments(segment_paths: list[Path], out_path: Path):
+    """Losslessly join pre-rendered segments (same codec/params) in the given order."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        for p in segment_paths:
+            f.write(f"file '{p.resolve()}'\n")
+        list_path = f.name
+    try:
+        run_ffmpeg([
+            "-f", "concat", "-safe", "0", "-i", list_path,
+            "-c", "copy", str(out_path),
+        ], description=f"concatenating {len(segment_paths)} segment(s)")
+    finally:
+        Path(list_path).unlink(missing_ok=True)
+
+
 def probe_resolution(path: Path):
     cmd = [
         "ffprobe", "-v", "error", "-select_streams", "v:0",
@@ -268,70 +305,94 @@ def main():
     if USE_BACKGROUND_MUSIC and not args.no_music and not music_tracks:
         eprint(f"[music] no tracks found in {MUSIC_DIR}/ -- skipping background music")
 
-    for i, clip in enumerate(sorted(clips, key=lambda c: c["start"]), start=1):
-        start, end = clip["start"], clip["end"]
+    def sort_key(c):
+        return c["start"] if "start" in c else c["segments"][0]["start"]
+
+    for i, clip in enumerate(sorted(clips, key=sort_key), start=1):
         title = clip.get("title", f"clip-{i}")
         slug = slugify(title)
         out_name = f"clip_{i:02d}_{slug}.mp4"
         out_path = out_dir / out_name
 
+        # a clip is either a single continuous window ({start,end}) or a list
+        # of {start,end} segments to be concatenated IN THE GIVEN ORDER -- the
+        # latter is how a hook-first reorder (a later moment used as the
+        # opening, cut back to earlier context) gets built.
+        raw_segments = clip.get("segments") or [{"start": clip["start"], "end": clip["end"]}]
+        segments = [dict(s) for s in raw_segments]
+
         if TRIM_TO_SILENCE:
-            refined_start = refine_boundary_to_silence(input_path, start, "start")
-            refined_end = refine_boundary_to_silence(input_path, end, "end")
-            if refined_end - refined_start >= MIN_CLIP_SECONDS * 0.5:
-                if abs(refined_start - start) > 0.01 or abs(refined_end - end) > 0.01:
-                    eprint(f"      trim: {start:.2f}-{end:.2f} -> {refined_start:.2f}-{refined_end:.2f}")
-                start, end = refined_start, refined_end
+            # only the outer edges of the assembled clip get nudged onto a
+            # natural silence gap -- interior cut points between segments are
+            # deliberate hard cuts chosen for the reorder, not dead air.
+            s0 = segments[0]
+            refined_start = refine_boundary_to_silence(input_path, s0["start"], "start")
+            if refined_start != s0["start"] and (segments[-1]["end"] - refined_start if len(segments) == 1 else s0["end"] - refined_start) >= MIN_CLIP_SECONDS * 0.5:
+                s0["start"] = refined_start
+            sN = segments[-1]
+            refined_end = refine_boundary_to_silence(input_path, sN["end"], "end")
+            if refined_end != sN["end"] and (refined_end - segments[0]["start"] if len(segments) == 1 else refined_end - sN["start"]) >= MIN_CLIP_SECONDS * 0.5:
+                sN["end"] = refined_end
 
         # persist the (possibly refined) times so 04_add_captions.py slices the
-        # transcript against the exact window that actually got cut
-        clip["start"], clip["end"] = start, end
-
-        samples = sample_face_centers(input_path, start, end)
-        x_expr = build_dynamic_x_expr(samples, crop_w, src_w) if samples else None
-        vf = build_crop_filter(src_w, src_h, x_expr, None)
+        # transcript against the exact windows that actually got cut
+        if clip.get("segments"):
+            clip["segments"] = segments
+        else:
+            clip["start"], clip["end"] = segments[0]["start"], segments[0]["end"]
 
         music_path = random.choice(music_tracks) if music_tracks else None
-        tracked_points = sum(1 for _, f in samples if f is not None) if samples else 0
-        mode = f"tracked ({tracked_points}/{len(samples)} samples)" if x_expr else ("center" if not samples else "center (no face found)")
         music_note = f"  music={music_path.name}" if music_path else ""
-        eprint(f"[{i:02d}] {title}  ({start:.1f}s - {end:.1f}s)  face_lock={mode}{music_note}")
+        seg_desc = " -> ".join(f"{s['start']:.1f}-{s['end']:.1f}s" for s in segments)
+        eprint(f"[{i:02d}] {title}  [{seg_desc}]{music_note}")
 
-        voice_af = f"loudnorm=I={LOUDNESS_TARGET_LUFS}:TP={LOUDNESS_TRUE_PEAK}:LRA={LOUDNESS_RANGE}" if NORMALIZE_LOUDNESS else "anull"
-        video_vf = f"{vf},fps={OUTPUT_FPS}"
+        with tempfile.TemporaryDirectory() as tmp:
+            if len(segments) == 1:
+                concat_input = out_dir / f"_tmp_{i:02d}_full.mp4"
+                render_segment(input_path, segments[0]["start"], segments[0]["end"], src_w, src_h, crop_w, concat_input)
+                pre_mix_path = concat_input
+            else:
+                seg_paths = []
+                for j, seg in enumerate(segments):
+                    seg_path = Path(tmp) / f"seg_{j:02d}.mp4"
+                    render_segment(input_path, seg["start"], seg["end"], src_w, src_h, crop_w, seg_path)
+                    seg_paths.append(seg_path)
+                pre_mix_path = out_dir / f"_tmp_{i:02d}_full.mp4"
+                concat_segments(seg_paths, pre_mix_path)
 
-        cmd = ["-ss", str(start), "-to", str(end), "-i", str(input_path)]
-        if music_path:
-            clip_duration = end - start
-            song_duration = ffprobe_duration(music_path)
-            max_offset = max(0.0, song_duration - clip_duration)
-            music_offset = random.uniform(0.0, max_offset) if max_offset > 0 else 0.0
-            eprint(f"      music excerpt: {music_path.name} @ {music_offset:.1f}s-{music_offset + clip_duration:.1f}s")
-            # a single trimmed excerpt, not the whole track and not looped --
-            # picking a random start point also keeps repeat plays of the same
-            # track from always opening on the same intro bar
-            cmd += ["-ss", f"{music_offset:.2f}", "-t", str(clip_duration), "-i", str(music_path)]
-            filter_complex = (
-                f"[0:v]{video_vf}[vout];"
-                f"[0:a]{voice_af},aformat=channel_layouts=stereo[voice];"
-                f"[1:a]volume={BACKGROUND_MUSIC_VOLUME},aformat=channel_layouts=stereo[music];"
-                f"[voice][music]amix=inputs=2:duration=first:dropout_transition=0[aout]"
-            )
-        else:
-            filter_complex = f"[0:v]{video_vf}[vout];[0:a]{voice_af}[aout]"
+            clip_duration = ffprobe_duration(pre_mix_path)
+            voice_af = f"loudnorm=I={LOUDNESS_TARGET_LUFS}:TP={LOUDNESS_TRUE_PEAK}:LRA={LOUDNESS_RANGE}" if NORMALIZE_LOUDNESS else "anull"
 
-        cmd += [
-            "-filter_complex", filter_complex,
-            "-map", "[vout]", "-map", "[aout]",
-            "-c:v", "libx264", "-preset", "medium", "-crf", str(VIDEO_CRF),
-            "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "44100",
-            "-movflags", "+faststart",
-            str(out_path),
-        ]
-        run_ffmpeg(cmd, description=f"cutting + reframing clip {i}")
+            cmd = ["-i", str(pre_mix_path)]
+            if music_path:
+                song_duration = ffprobe_duration(music_path)
+                max_offset = max(0.0, song_duration - clip_duration)
+                music_offset = random.uniform(0.0, max_offset) if max_offset > 0 else 0.0
+                eprint(f"      music excerpt: {music_path.name} @ {music_offset:.1f}s-{music_offset + clip_duration:.1f}s")
+                cmd += ["-ss", f"{music_offset:.2f}", "-t", str(clip_duration), "-i", str(music_path)]
+                filter_complex = (
+                    f"[0:a]{voice_af},aformat=channel_layouts=stereo[voice];"
+                    f"[1:a]volume={BACKGROUND_MUSIC_VOLUME},aformat=channel_layouts=stereo[music];"
+                    f"[voice][music]amix=inputs=2:duration=first:dropout_transition=0[aout]"
+                )
+                cmd += ["-filter_complex", filter_complex, "-map", "0:v", "-map", "[aout]"]
+            else:
+                cmd += ["-af", voice_af, "-map", "0:v", "-map", "0:a"]
 
-        # remember where each raw (uncaptioned) clip landed and its time offset,
-        # so the captions step can slice the right words out of the transcript
+            # video is already correctly encoded by render_segment/concat_segments --
+            # just re-mux it (copy, no re-encode) alongside the processed audio
+            cmd += [
+                "-c:v", "copy",
+                "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "44100",
+                "-movflags", "+faststart",
+                str(out_path),
+            ]
+            run_ffmpeg(cmd, description=f"finalizing audio for clip {i}")
+
+            Path(pre_mix_path).unlink(missing_ok=True)
+
+        # remember where each raw (uncaptioned) clip landed, so the captions
+        # step can slice the right words out of the transcript
         clip["_raw_output"] = str(out_path)
 
     from utils import save_json

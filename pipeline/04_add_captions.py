@@ -9,22 +9,33 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import WORK_DIR, OUT_DIR, eprint, load_json, run_ffmpeg  # noqa: E402
+from utils import WORK_DIR, OUT_DIR, eprint, load_json, run_ffmpeg, ffprobe_duration, humanize_title  # noqa: E402
 from ass_captions import Word, build_ass  # noqa: E402
 
 
-def words_for_clip(all_words, clip_start, clip_end):
+def words_for_window(all_words, win_start, win_end, offset):
     out = []
     for w in all_words:
-        # keep words that overlap the clip window at all
-        if w["end"] <= clip_start or w["start"] >= clip_end:
+        if w["end"] <= win_start or w["start"] >= win_end:
             continue
-        rel_start = max(w["start"], clip_start) - clip_start
-        rel_end = max(w["end"], clip_start) - clip_start
-        rel_end = min(rel_end, clip_end - clip_start)
+        rel_start = max(w["start"], win_start) - win_start
+        rel_end = min(max(w["end"], win_start), win_end) - win_start
         if rel_end <= rel_start:
             continue
-        out.append(Word(text=w["word"], start=rel_start, end=rel_end))
+        out.append(Word(text=w["word"], start=rel_start + offset, end=rel_end + offset))
+    return out
+
+
+def words_for_clip(all_words, clip):
+    """A clip is either one continuous {start,end} window or an ordered list
+    of {start,end} `segments` (a hook-first reorder) -- concatenate the words
+    from each in the same order the video segments get joined."""
+    segments = clip.get("segments") or [{"start": clip["start"], "end": clip["end"]}]
+    out = []
+    offset = 0.0
+    for seg in segments:
+        out.extend(words_for_window(all_words, seg["start"], seg["end"], offset))
+        offset += seg["end"] - seg["start"]
     return out
 
 
@@ -33,18 +44,24 @@ def main():
     clips = load_json(WORK_DIR / "clips.json")
     all_words = transcript["words"]
 
-    for i, clip in enumerate(sorted(clips, key=lambda c: c["start"]), start=1):
+    def sort_key(c):
+        return c["start"] if "start" in c else c["segments"][0]["start"]
+
+    for i, clip in enumerate(sorted(clips, key=sort_key), start=1):
         raw_path = clip.get("_raw_output")
         if not raw_path or not Path(raw_path).exists():
             eprint(f"[{i:02d}] SKIP '{clip.get('title')}': run 03_cut_and_reframe.py first.")
             continue
 
         raw_path = Path(raw_path)
-        words = words_for_clip(all_words, clip["start"], clip["end"])
+        words = words_for_clip(all_words, clip)
         if not words:
             eprint(f"[{i:02d}] WARNING: no words found for '{clip.get('title')}' -- captions will be empty.")
 
-        ass_content = build_ass(words)
+        title_text = humanize_title(clip.get("title", ""))
+        duration = ffprobe_duration(raw_path)
+
+        ass_content = build_ass(words, title=title_text or None, duration=duration)
         ass_path = raw_path.with_suffix(".ass")
         ass_path.write_text(ass_content, encoding="utf-8")
 
