@@ -8,36 +8,84 @@
     "allow_comment": true,
     "allow_duet": true,
     "allow_stitch": true,
-    "commercial_content_disclosure": { "enabled": false, "your_brand": false, "branded_content": false }
+    "commercial_content_disclosure": {
+      "enabled": false,
+      "your_brand": false,
+      "branded_content": false
+    }
   },
   "items": [
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/9d0a1e49-124a-4b71-8135-a68db0fcb584.mp4", "title": "How to identify a Dolly Varden char 🐟 #fishing #alaska #outdoors #survival 🎥 Footage: Outdoor Boys", "status": "posted", "note": "posted twice (19:00 and 20:00 UTC firings both succeeded on TikTok before the GitHub push failure was discovered) -- duplicate on TikTok, not a data issue" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/950c9ae8-c9cd-48b8-af73-70252672fc4d.mp4", "title": "You eat like an anaconda 😂🥪 #camping #alaska #family #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/9119203e-e391-4594-9835-be251b042f6b.mp4", "title": "The most famous cabin in Alaska, built by hand 🪵🏔️ #bushcraft #alaska #history #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/a114c532-e772-482c-836f-b6d2c22ae01e.mp4", "title": "He built this entire cabin by hand in 10 days 🪵😳 #bushcraft #alaska #history #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/49404b40-368d-41cf-bdf9-c5362c034258.mp4", "title": "How to tell a black bear track from a grizzly 🐻👣 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/ff865235-f64b-433e-b0d9-4d7a97561619.mp4", "title": "He dared his son to swim in 42°F water 🥶😂 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/72f5da8a-103b-4d0c-a263-434b476281cb.mp4", "title": "His first lake trout ever 🐟❤️ #fishing #alaska #family #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/2e953a35-7119-44a0-9a05-c3daaa1c88ef.mp4", "title": "Something huge just ate our bait 🎣😱 #fishing #alaska #laketrout #outdoors 🎥 Footage: Outdoor Boys", "status": "posted" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/d2068b2e-abea-486b-b5bc-69bd7e12b2d8.mp4", "title": "No tent. No sleeping bag. No tarp. Surviving Alaska anyway. 🥶🔥 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted", "posted_at": "2026-08-27T18:01:40Z" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/5deb1ea7-f891-4401-893c-912675e57363.mp4", "title": "Starting a fire with just flint and steel in the freezing cold 🔥 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted", "posted_at": "2026-08-27T19:01:49Z" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/f2d27953-62fa-4139-af4d-3fa086e2e3bd.mp4", "title": "When your gear starts warning you it's too cold ❄️ #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted", "posted_at": "2026-08-27T20:01:00Z" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/c4cfff67-1ee6-4d6b-83a6-96f17cfd67ad.mp4", "title": "Built a shelter so hot it's like a pizza oven inside 🔥🏕️ #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "posted", "posted_at": "2026-08-27T21:01:00Z" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/fb02a1a7-6b08-4b62-bc81-e0b8f71da732.mp4", "title": "This moose gave 567 pounds of meat 🦌 #survival #bushcraft #alaska #hunting 🎥 Footage: Outdoor Boys", "status": "posted", "posted_at": "2026-08-28T00:55:00Z", "note": "posted interactively to TikTok + Instagram + YouTube as an end-to-end pipeline test; do not re-post via the auto-poster" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/6761328e-7628-4cb2-bdbb-d19b9d5cb068.mp4", "title": "Sleeping on the ground for one night will humble you 😂 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "pending", "ig_posted_at": "2026-08-28T01:20:00Z", "ig_media_id": "18119242048865017" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/0911c019-a666-4f9c-a3cf-64d274c8af09.mp4", "title": "Bare minimum camping: bread straight on the coals 🍞🔥 #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "pending", "ig_posted_at": "2026-08-28T01:20:00Z", "ig_media_id": "17878068735626584" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/af1ac685-eacd-49d1-8626-112530c11189.mp4", "title": "The trick to surviving negative 20 degrees 🔥❄️ #survival #bushcraft #alaska #outdoors 🎥 Footage: Outdoor Boys", "status": "pending", "ig_posted_at": "2026-08-28T01:20:00Z", "ig_media_id": "18430747411182577" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/559ba0b3-a3f0-49a7-aeac-2c8b0fea38bc.mp4", "title": "11 years of YouTube videos, and a hard truth about family 💭 #survival #bushcraft #alaska #family 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/b68bd105-646a-460a-840a-b38ddab5cea7.mp4", "title": "Reading fox tracks in the snow 🦊 #survival #bushcraft #alaska #wildlife 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/45e58264-95cf-44f2-9b16-7ab3fc864d73.mp4", "title": "150 miles north of the Arctic Circle, solo. ❄️🧭 #survival #bushcraft #arctic #outdoors 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/d55ca675-600d-4ff1-923c-65911d505001.mp4", "title": "I've got this fox pinned in the valley 🦊 #survival #bushcraft #arctic #wildlife 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/f60a3536-ed6c-41fa-8e44-27834f5a5f91.mp4", "title": "This snow had zero structural integrity. Built a shelter anyway. 🏔️ #survival #bushcraft #arctic #outdoors 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/9485a5ca-acb6-4114-86f8-014a9c38f40f.mp4", "title": "It's so cold even the gasoline won't start ❄️🔥 #survival #bushcraft #arctic #outdoors 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/f82d11b8-7f20-4fbb-bfca-3a5ee91b369d.mp4", "title": "Melting cheese in a spoon, Arctic style 🧀 #survival #bushcraft #arctic #camping 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/4d0291b9-7924-420d-873e-e45ca55800df.mp4", "title": "The problem isn't freezing to death. It's getting sleep. 💭 #survival #bushcraft #arctic #outdoors 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/5682361b-8fe4-47f5-866e-b5be1a9cb475.mp4", "title": "Holy mackerel, they just disappeared 😂 #survival #bushcraft #arctic #hunting 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/ef31ba3a-3c0b-48dc-a04b-73beeacc16e2.mp4", "title": "This road is made entirely of ice ❄️🛣️ #survival #bushcraft #arctic #alaska 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/84261212-d043-422a-9255-f25410ffa3e8.mp4", "title": "Even a blind pig finds an acorn sometimes 😂🏹 #survival #bushcraft #arctic #hunting 🎥 Footage: Outdoor Boys", "status": "pending" },
-    { "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/ba779523-16c2-4935-a632-37223b7bf053.mp4", "title": "Guess when the ice breaks, win $210,000 💰🧊 #survival #bushcraft #arctic #alaska 🎥 Footage: Outdoor Boys", "status": "pending" }
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/9d0a1e49-124a-4b71-8135-a68db0fcb584.mp4",
+      "title": "How to identify a Dolly Varden char \ud83d\udc1f #fishing #alaska #outdoors #survival \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "note": "posted twice (19:00 and 20:00 UTC firings both succeeded on TikTok before the GitHub push failure was discovered) -- duplicate on TikTok, not a data issue"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/950c9ae8-c9cd-48b8-af73-70252672fc4d.mp4",
+      "title": "You eat like an anaconda \ud83d\ude02\ud83e\udd6a #camping #alaska #family #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/9119203e-e391-4594-9835-be251b042f6b.mp4",
+      "title": "The most famous cabin in Alaska, built by hand \ud83e\udeb5\ud83c\udfd4\ufe0f #bushcraft #alaska #history #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/a114c532-e772-482c-836f-b6d2c22ae01e.mp4",
+      "title": "He built this entire cabin by hand in 10 days \ud83e\udeb5\ud83d\ude33 #bushcraft #alaska #history #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/49404b40-368d-41cf-bdf9-c5362c034258.mp4",
+      "title": "How to tell a black bear track from a grizzly \ud83d\udc3b\ud83d\udc63 #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/ff865235-f64b-433e-b0d9-4d7a97561619.mp4",
+      "title": "He dared his son to swim in 42\u00b0F water \ud83e\udd76\ud83d\ude02 #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/72f5da8a-103b-4d0c-a263-434b476281cb.mp4",
+      "title": "His first lake trout ever \ud83d\udc1f\u2764\ufe0f #fishing #alaska #family #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/2e953a35-7119-44a0-9a05-c3daaa1c88ef.mp4",
+      "title": "Something huge just ate our bait \ud83c\udfa3\ud83d\ude31 #fishing #alaska #laketrout #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/d2068b2e-abea-486b-b5bc-69bd7e12b2d8.mp4",
+      "title": "No tent. No sleeping bag. No tarp. Surviving Alaska anyway. \ud83e\udd76\ud83d\udd25 #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "posted_at": "2026-08-27T18:01:40Z"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/5deb1ea7-f891-4401-893c-912675e57363.mp4",
+      "title": "Starting a fire with just flint and steel in the freezing cold \ud83d\udd25 #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "posted_at": "2026-08-27T19:01:49Z"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/f2d27953-62fa-4139-af4d-3fa086e2e3bd.mp4",
+      "title": "When your gear starts warning you it's too cold \u2744\ufe0f #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "posted_at": "2026-08-27T20:01:00Z"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/c4cfff67-1ee6-4d6b-83a6-96f17cfd67ad.mp4",
+      "title": "Built a shelter so hot it's like a pizza oven inside \ud83d\udd25\ud83c\udfd5\ufe0f #survival #bushcraft #alaska #outdoors \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "posted_at": "2026-08-27T21:01:00Z"
+    },
+    {
+      "video_url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3Fy31vX67BnhLYm5z9ryA42KOyz/fb02a1a7-6b08-4b62-bc81-e0b8f71da732.mp4",
+      "title": "This moose gave 567 pounds of meat \ud83e\udd8c #survival #bushcraft #alaska #hunting \ud83c\udfa5 Footage: Outdoor Boys",
+      "status": "posted",
+      "posted_at": "2026-08-28T00:55:00Z",
+      "note": "posted interactively to TikTok + Instagram + YouTube as an end-to-end pipeline test; do not re-post via the auto-poster"
+    }
   ]
 }
